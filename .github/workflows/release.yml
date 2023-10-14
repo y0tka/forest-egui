@@ -24,6 +24,10 @@ jobs:
           - { os: windows-latest, target: "x86_64-pc-windows-msvc" }
 
     steps:
+      - name: 📠 Calculate Release Version
+        run: |
+            echo "RELEASE_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+          
       - name: Checkout
         uses: actions/checkout@v3
 
@@ -51,8 +55,6 @@ jobs:
           echo "ARTIFACT_PATH=$artifact_path" >> $GITHUB_ENV
           mkdir $release_dir
           cp target/${{ matrix.config.target }}/release/forest-egui.exe $release_dir/
-          cp -R assets/ $release_dir/
-          cp LICENSE $release_dir/
           7z a -tzip $artifact_path $release_dir/
 
       - name: Prepare artifacts [Unix]
@@ -64,8 +66,6 @@ jobs:
           echo "ARTIFACT_PATH=$artifact_path" >> $GITHUB_ENV
           mkdir $release_dir
           cp target/${{ matrix.config.target }}/release/forest-egui $release_dir/
-          cp -R assets $release_dir
-          cp LICENSE $release_dir
           tar -czvf $artifact_path $release_dir/
 
       - name: Upload artifacts
