@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use eframe::egui;
-use egui::{epaint, Color32, FontData, FontDefinitions, FontFamily, RichText, Slider};
+use egui::{epaint, Color32, RichText, Slider};
 use epaint::{Pos2, Rounding, Vec2};
 use forest_egui::{cartesian_to_linear, Cell, CellType};
 use reqwest::StatusCode;
@@ -49,8 +49,7 @@ struct Request {
 }
 
 impl MyApp {
-    fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        setup_custom_fonts(&cc.egui_ctx);
+    fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         Self {
             field: vec![],
             field_size: 0,
@@ -69,28 +68,6 @@ impl MyApp {
             speed: 1.,
         }
     }
-}
-
-fn setup_custom_fonts(ctx: &egui::Context) {
-    let mut fonts = FontDefinitions::default();
-    fonts.font_data.insert(
-        "jb_mono".to_owned(),
-        FontData::from_static(include_bytes!(
-            "/usr/share/fonts/TTF/JetBrainsMonoNerdFont-Regular.ttf"
-        )),
-    );
-    fonts
-        .families
-        .get_mut(&FontFamily::Proportional)
-        .unwrap()
-        .insert(0, "jb_mono".to_owned());
-    fonts
-        .families
-        .get_mut(&FontFamily::Monospace)
-        .unwrap()
-        .insert(0, "jb_mono".to_owned());
-
-    ctx.set_fonts(fonts);
 }
 
 fn get_new_field(req: &Request) -> Result<Vec<Cell>, String> {
