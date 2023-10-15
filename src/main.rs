@@ -3,8 +3,7 @@
 use eframe::egui;
 use egui::{epaint, Color32, RichText, Slider};
 use epaint::{Pos2, Rounding, Vec2};
-use forest_egui::{cartesian_to_linear, Cell, CellType};
-use reqwest::StatusCode;
+use forest_egui::{cartesian_to_linear, get_field_step, get_random_field, Cell, CellType};
 
 fn main() -> Result<(), eframe::Error> {
     let options = eframe::NativeOptions {
@@ -70,43 +69,6 @@ impl MyApp {
     }
 }
 
-fn get_new_field(req: &Request) -> Result<Vec<Cell>, String> {
-    let c = reqwest::blocking::Client::new();
-    let req = c
-        .get("http://127.0.0.1:3030/v1/field/random")
-        .query(&[
-            ("size", &req.size.to_string()),
-            ("grass", &req.grass.to_string()),
-            ("trees", &req.tress.to_string()),
-            ("flames", &req.flames.to_string()),
-        ])
-        .send();
-
-    match req {
-        Ok(response) => match response.status() {
-            StatusCode::OK => Ok(response.json::<Vec<Cell>>().unwrap()),
-            _ => Err(String::from("Server is sad")),
-        },
-        Err(e) => Err(format!("{}", e)),
-    }
-}
-
-fn get_field_step(field: &Vec<Cell>) -> Result<Vec<Cell>, String> {
-    let c = reqwest::blocking::Client::new();
-    let req = c
-        .post("http://127.0.0.1:3030/v1/simulation/step")
-        .body(serde_json::to_string(&field).unwrap())
-        .send();
-
-    match req {
-        Ok(response) => match response.status() {
-            StatusCode::OK => Ok(response.json::<Vec<Cell>>().unwrap()),
-            _ => Err(String::from("Server is sad")),
-        },
-        Err(e) => Err(format!("{}", e)),
-    }
-}
-
 fn get_stats(field: &[Cell]) -> Stats {
     Stats {
         _empty: field
@@ -140,13 +102,8 @@ impl eframe::App for MyApp {
         self.c_frame %= 60;
 
         if self.c_frame % (60. / self.speed) as u8 == 0 && self.running {
-            match get_field_step(&self.field) {
-                Ok(field) => {
-                    self.field = field;
-                    self.stats = get_stats(&self.field);
-                }
-                Err(e) => self.message = e,
-            }
+            self.field = get_field_step(&self.field);
+            self.stats = get_stats(&self.field);
         }
 
         egui::SidePanel::left("Controls")
@@ -188,14 +145,9 @@ impl eframe::App for MyApp {
                     ui.label(self.message.clone());
 
                     if ui.button("update field").clicked() {
-                        match get_field_step(&self.field) {
-                            Ok(field) => {
-                                self.field = field;
-                                self.message = "".into();
-                                self.stats = get_stats(&self.field);
-                            }
-                            Err(e) => self.message = e,
-                        }
+                        self.field = get_field_step(&self.field);
+                        self.message = "".into();
+                        self.stats = get_stats(&self.field);
                     }
 
                     ui.separator();
@@ -246,13 +198,13 @@ impl eframe::App for MyApp {
                 ui.separator();
 
                 if ui.button("get new field").clicked() {
-                    match get_new_field(&self.reqest) {
-                        Ok(field) => {
-                            self.field = field;
-                            self.message = "".into();
-                        }
-                        Err(e) => self.message = e,
-                    }
+                    self.field = get_random_field(
+                        self.reqest.size as usize,
+                        self.reqest.grass,
+                        self.reqest.tress,
+                        self.reqest.flames,
+                    );
+                    self.message = "".into();
                 }
             });
 
@@ -300,7 +252,7 @@ impl eframe::App for MyApp {
                                 Color32::from_rgba_premultiplied(25, 200, 80, transparency)
                             }
                             CellType::Tree => {
-                                Color32::from_rgba_premultiplied(80, 150, 80, transparency)
+                                Color32::from_rgba_premultiplied(9, 57, 35, transparency)
                             }
                             CellType::Flame => {
                                 Color32::from_rgba_premultiplied(200, 50, 50, transparency)
